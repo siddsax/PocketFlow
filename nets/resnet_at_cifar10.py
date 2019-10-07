@@ -19,11 +19,13 @@
 import tensorflow as tf
 
 from nets.abstract_model_helper import AbstractModelHelper
-from datasets.cifar10_dataset import Cifar10Dataset
+# from datasets.cifar10_dataset import Cifar10Dataset
 from utils.external import resnet_model as ResNet
+from utils.external import mobilenet_v2 as MobilenetV2
+
 from utils.lrn_rate_utils import setup_lrn_rate_piecewise_constant
 from utils.multi_gpu_wrapper import MultiGpuWrapper as mgw
-
+from datasets.datasetMIML import MIMLDataset
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('resnet_size', 20, '# of layers in the ResNet model')
@@ -58,9 +60,20 @@ def forward_fn(inputs, is_train, data_format):
   block_strides = [1, 2, 2]
 
   # model definition
-  model = ResNet.Model(
-    FLAGS.resnet_size, bottleneck, nb_classes, nb_filters, kernel_size, conv_stride,
-    first_pool_size, first_pool_stride, block_sizes, block_strides, data_format=data_format)
+
+  model = ResNet.Model(FLAGS.resnet_size, bottleneck, nb_classes, nb_filters, kernel_size, conv_stride, first_pool_size, first_pool_stride, block_sizes, block_strides, data_format=data_format)
+  # base_net = tf.keras.applications.MobileNetV2(input_shape=(image_wh, image_wh, 3), include_top=False)
+  # base_net.trainable = False
+
+  # model = tf.keras.Sequential([
+  #   base_net,
+  #   tf.keras.layers.GlobalAveragePooling2D(),
+  #   tf.keras.layers.Dense(labels, activation = 'softmax')])
+
+  # model.compile(optimizer=tf.keras.optimizers.Adam(),
+  #               loss='categorical_crossentropy',
+  #               metrics=['accuracy'])
+
   inputs = model(inputs, is_train)
 
   return inputs
@@ -75,17 +88,25 @@ class ModelHelper(AbstractModelHelper):
     super(ModelHelper, self).__init__(data_format)
 
     # initialize training & evaluation subsets
-    self.dataset_train = Cifar10Dataset(is_train=True)
-    self.dataset_eval = Cifar10Dataset(is_train=False)
+    dataset_directory = '/Users/ssaxena/Downloads/miml_dataset'
+    self.dataset_train = MIMLDataset(is_train=True)
+    self.dataset_eval = MIMLDataset(is_train=False)
+    # self.dataset_train = Cifar10Dataset(is_train=True)
+    # self.dataset_eval = Cifar10Dataset(is_train=False)
 
   def build_dataset_train(self, enbl_trn_val_split=False):
     """Build the data subset for training, usually with data augmentation."""
 
+    # if enbl_trn_val_split:
+    #   return self.dataset_train
+    # else:
+    #   return self.dataset_train[0]
     return self.dataset_train.build(enbl_trn_val_split)
 
   def build_dataset_eval(self):
     """Build the data subset for evaluation, usually without data augmentation."""
 
+    # return self.dataset_eval
     return self.dataset_eval.build()
 
   def forward_train(self, inputs):
@@ -103,8 +124,16 @@ class ModelHelper(AbstractModelHelper):
 
     loss = tf.losses.softmax_cross_entropy(labels, outputs)
     loss_filter = lambda var: 'batch_normalization' not in var.name
-    loss += FLAGS.loss_w_dcy \
-      * tf.add_n([tf.nn.l2_loss(var) for var in trainable_vars if loss_filter(var)])
+
+    k = []
+    for var in trainable_vars:
+      if loss_filter(var):
+        try:
+          k.append(tf.nn.l2_loss(var))
+        except:
+          continue
+
+    loss += FLAGS.loss_w_dcy * tf.add_n(k)
     accuracy = tf.reduce_mean(
       tf.cast(tf.equal(tf.argmax(labels, axis=1), tf.argmax(outputs, axis=1)), tf.float32))
     metrics = {'accuracy': accuracy}

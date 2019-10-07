@@ -30,8 +30,7 @@ from utils.multi_gpu_wrapper import MultiGpuWrapper as mgw
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('dcp_save_path', './models_dcp/model.ckpt', 'DCP: model\'s save path')
-tf.app.flags.DEFINE_string('dcp_save_path_eval', './models_dcp_eval/model.ckpt',
-                           'DCP: model\'s save path for evaluation')
+tf.app.flags.DEFINE_string('dcp_save_path_eval', './models_dcp_eval/model.ckpt', 'DCP: model\'s save path for evaluation')
 tf.app.flags.DEFINE_float('dcp_prune_ratio', 0.5, 'DCP: target channel pruning ratio')
 tf.app.flags.DEFINE_integer('dcp_nb_stages', 3, 'DCP: # of channel pruning stages')
 tf.app.flags.DEFINE_float('dcp_lrn_rate_adam', 1e-3, 'DCP: Adam\'s learning rate')
@@ -130,6 +129,9 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     """Train a model and periodically produce checkpoint files."""
 
     # restore the full model from pre-trained checkpoints
+
+    print('-'*100)
+    import pdb;pdb.set_trace()
     save_path = tf.train.latest_checkpoint(os.path.dirname(self.save_path_full))
     self.saver_full.restore(self.sess_train, save_path)
 
@@ -191,7 +193,11 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
       # data input pipeline
       with tf.variable_scope(self.data_scope):
         iterator = self.build_dataset_train()
-        images, labels = iterator.get_next()
+
+        try:
+          images, labels = next(iterator)
+        except:
+          images, labels = iterator.get_next()
 
       # model definition - distilled model
       if FLAGS.enbl_dst:
@@ -228,9 +234,9 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
 
         # overall pruning ratios of trainable & maskable variables
         pr_trainable = calc_prune_ratio(self.vars_prnd['trainable'])
-        pr_maskable = calc_prune_ratio(self.vars_prnd['maskable'])
+        # pr_maskable = calc_prune_ratio(self.vars_prnd['maskable'])
         tf.summary.scalar('pr_trainable', pr_trainable)
-        tf.summary.scalar('pr_maskable', pr_maskable)
+        # tf.summary.scalar('pr_maskable', pr_maskable)
 
         # create masks and corresponding operations for channel pruning
         self.masks = []
@@ -281,7 +287,8 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
       # TF operations for logging & summarizing
       self.sess_train = sess
       self.summary_op = tf.summary.merge_all()
-      self.log_op = [lrn_rate, loss_fnl, pr_trainable, pr_maskable] + list(metrics.values())
+      # self.log_op = [lrn_rate, loss_fnl, pr_trainable, pr_maskable] + list(metrics.values())
+      self.log_op = [lrn_rate, loss_fnl, pr_trainable] + list(metrics.values())
       self.log_op_names = ['lr', 'loss', 'pr_trn', 'pr_msk'] + list(metrics.keys())
       if FLAGS.enbl_multi_gpu:
         self.bcast_op = mgw.broadcast_global_variables(0)
@@ -298,7 +305,10 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
       # data input pipeline
       with tf.variable_scope(self.data_scope):
         iterator = self.build_dataset_eval()
-        images, labels = iterator.get_next()
+        try:
+          images, labels = next(iterator)
+        except:
+          images, labels = iterator.get_next()
 
       # model definition - distilled model
       if FLAGS.enbl_dst:
@@ -307,6 +317,8 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
       # model definition - channel-pruned model
       with tf.variable_scope(self.model_scope_prnd):
         # loss & extra evaluation metrics
+
+        print("-"*100)
         logits = self.forward_eval(images)
         vars_prnd = get_vars_by_scope(self.model_scope_prnd)
         loss, metrics = self.calc_loss(labels, logits, vars_prnd['trainable'])
@@ -315,10 +327,11 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
 
         # overall pruning ratios of trainable & maskable variables
         pr_trainable = calc_prune_ratio(vars_prnd['trainable'])
-        pr_maskable = calc_prune_ratio(vars_prnd['maskable'])
+        # pr_maskable = calc_prune_ratio(vars_prnd['maskable'])
 
         # TF operations for evaluation
-        self.eval_op = [loss, pr_trainable, pr_maskable] + list(metrics.values())
+        # self.eval_op = [loss, pr_trainable, pr_maskable] + list(metrics.values())
+        self.eval_op = [loss, pr_trainable] + list(metrics.values())
         self.eval_op_names = ['loss', 'pr_trn', 'pr_msk'] + list(metrics.keys())
         self.saver_prnd_eval = tf.train.Saver(vars_prnd['all'])
 
@@ -547,7 +560,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     Args:
     * is_train: whether to restore a model for training
     """
-
+    print("="*100)
     save_path = tf.train.latest_checkpoint(os.path.dirname(FLAGS.dcp_save_path))
     if is_train:
       self.saver_prnd_train.restore(self.sess_train, save_path)

@@ -18,7 +18,7 @@
 
 # data files
 data_hdfs_host = None
-data_dir_local_cifar10 = None
+data_dir_local_cifar10 = /Users/ssaxena/myAlteredCodes/PocketFlow/cifar-10-batches-bin
 data_dir_hdfs_cifar10 = None
 data_dir_seven_cifar10 = None
 data_dir_docker_cifar10 = /opt/ml/data  # DO NOT EDIT
