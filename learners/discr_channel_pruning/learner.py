@@ -130,10 +130,13 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
 
     # restore the full model from pre-trained checkpoints
 
-    print('-'*100)
-    import pdb;pdb.set_trace()
+    # print('-'*100)
+    # import pdb;pdb.set_trace()
+    # model = tf.saved_model.load(export_dir = '/Users/ssaxena/Downloads/multiLbl/', sess = self.sess_train, tags = ["serve"])
     save_path = tf.train.latest_checkpoint(os.path.dirname(self.save_path_full))
     self.saver_full.restore(self.sess_train, save_path)
+    # self.saver_full.restore(self.sess_train, "multiLbl")
+    # tf.train.Saver.restore
 
     # initialization
     self.sess_train.run([self.init_op, self.init_opt_op])
@@ -185,7 +188,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     """Build the training graph."""
 
     with tf.Graph().as_default():
-      # create a TF session for the current graph
+    #   create a TF session for the current graph
       config = tf.ConfigProto()
       config.gpu_options.visible_device_list = str(mgw.local_rank() if FLAGS.enbl_multi_gpu else 0)  # pylint: disable=no-member
       sess = tf.Session(config=config)
@@ -315,10 +318,9 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
         logits_dst = self.helper_dst.calc_logits(self.sess_eval, images)
 
       # model definition - channel-pruned model
-      with tf.variable_scope(self.model_scope_prnd):
+      with tf.variable_scope(self.model_scope_prnd):#, reuse=True):
         # loss & extra evaluation metrics
 
-        print("-"*100)
         logits = self.forward_eval(images)
         vars_prnd = get_vars_by_scope(self.model_scope_prnd)
         loss, metrics = self.calc_loss(labels, logits, vars_prnd['trainable'])
@@ -560,7 +562,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     Args:
     * is_train: whether to restore a model for training
     """
-    print("="*100)
+
     save_path = tf.train.latest_checkpoint(os.path.dirname(FLAGS.dcp_save_path))
     if is_train:
       self.saver_prnd_train.restore(self.sess_train, save_path)

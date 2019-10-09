@@ -98,7 +98,9 @@ class MIMLDataset(AbstractDataset):
       self.file_pattern = os.path.join(data_dir, 'data_batch_*.bin')
       self.batch_size = FLAGS.batch_size
     else:
-      self.file_pattern = os.path.join(data_dir, 'test_batch.bin')
+      self.file_pattern = os.path.join(data_dir, 'test_batch_*.bin')
       self.batch_size = FLAGS.batch_size_eval
+
     self.dataset_fn = lambda x: tf.data.FixedLengthRecordDataset(x, RECORD_BYTES)
     self.parse_fn = lambda x: parse_fn(x, is_train=is_train)
+

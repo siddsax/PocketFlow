@@ -77,9 +77,9 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
           time_prev = timer()
 
       # save & evaluate the model at certain steps
-      if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
-        self.__save_model(is_train=True)
-        self.evaluate()
+    if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
+      self.__save_model(is_train=True)
+      self.evaluate()
 
     # save the final model
     if self.is_primary_worker('global'):
@@ -96,6 +96,7 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
     eval_rslts = np.zeros((nb_iters, len(self.eval_op)))
     self.dump_n_eval(outputs=None, action='init')
     for idx_iter in range(nb_iters):
+
       eval_rslts[idx_iter], outputs = self.sess_eval.run([self.eval_op, self.outputs_eval])
       self.dump_n_eval(outputs=outputs, action='dump')
     self.dump_n_eval(outputs=None, action='eval')
@@ -131,10 +132,12 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
       # model definition - primary model
       with tf.variable_scope(self.model_scope):
         # forward pass
+
         if is_train and self.forward_w_labels:
           logits = self.forward_train(images, labels)
         else:
           logits = self.forward_train(images) if is_train else self.forward_eval(images)
+        
         if not isinstance(logits, dict):
           tf.add_to_collection('logits_final', logits)
         else:

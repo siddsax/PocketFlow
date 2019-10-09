@@ -3,7 +3,6 @@ import tensorflow as tf
 
 from nets.mobilenet_at_miml import ModelHelper
 from learners.learner_utils import create_learner
-tf.keras.backend.clear_session()
 
 FLAGS = tf.app.flags.FLAGS
 
