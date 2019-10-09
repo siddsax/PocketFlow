@@ -270,8 +270,7 @@ class ModelHelper(AbstractModelHelper):
 
     loss = tf.losses.softmax_cross_entropy(labels, outputs)
     loss += FLAGS.loss_w_dcy * tf.add_n([tf.nn.l2_loss(var) for var in trainable_vars])
-    accuracy = tf.reduce_mean(
-      tf.cast(tf.equal(tf.argmax(labels, axis=1), tf.argmax(outputs, axis=1)), tf.float32))
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(labels, axis=1), tf.argmax(outputs, axis=1)), tf.float32))
     metrics = {'accuracy': accuracy}
 
     return loss, metrics

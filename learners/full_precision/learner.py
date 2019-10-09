@@ -67,6 +67,7 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
     time_prev = timer()
     for idx_iter in range(self.nb_iters_train):
       # train the model
+      print(idx_iter, self.nb_iters_train)
       if (idx_iter + 1) % FLAGS.summ_step != 0:
         self.sess_train.run(self.train_op)
       else:
@@ -77,7 +78,7 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
           time_prev = timer()
 
       # save & evaluate the model at certain steps
-    if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
+      # if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
       self.__save_model(is_train=True)
       self.evaluate()
 
