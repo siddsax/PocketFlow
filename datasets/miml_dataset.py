@@ -24,11 +24,11 @@ from datasets.abstract_dataset import AbstractDataset
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('nb_classes', 5, '# of classes')
-tf.app.flags.DEFINE_integer('nb_smpls_train', 50000, '# of samples for training')
-tf.app.flags.DEFINE_integer('nb_smpls_val', 5000, '# of samples for validation')
-tf.app.flags.DEFINE_integer('nb_smpls_eval', 10000, '# of samples for evaluation')
-tf.app.flags.DEFINE_integer('batch_size', 128, 'batch size per GPU for training')
-tf.app.flags.DEFINE_integer('batch_size_eval', 100, 'batch size for evaluation')
+tf.app.flags.DEFINE_integer('nb_smpls_train', 1500, '# of samples for training')
+# tf.app.flags.DEFINE_integer('nb_smpls_val', 5000, '# of samples for validation')
+tf.app.flags.DEFINE_integer('nb_smpls_eval', 500, '# of samples for evaluation')
+tf.app.flags.DEFINE_integer('batch_size', 32, 'batch size per GPU for training')
+tf.app.flags.DEFINE_integer('batch_size_eval', 32, 'batch size for evaluation')
 
 # MIML specifications
 LABEL_BYTES = 1

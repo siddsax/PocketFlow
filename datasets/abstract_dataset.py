@@ -76,6 +76,7 @@ class AbstractDataset(ABC):
     '''
 
     # obtain list of data files' names
+    #filenames = tf.data.Dataset.list_files(self.file_pattern, shuffle=False)
     filenames = tf.data.Dataset.list_files(self.file_pattern, shuffle=True)
     if self.enbl_shard:
       filenames = filenames.shard(mgw.size(), mgw.rank())

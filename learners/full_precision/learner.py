@@ -78,9 +78,9 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
           time_prev = timer()
 
       # save & evaluate the model at certain steps
-      # if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
-      self.__save_model(is_train=True)
-      self.evaluate()
+      if self.is_primary_worker('global') and (idx_iter + 1) % FLAGS.save_step == 0:
+        self.__save_model(is_train=True)
+        self.evaluate()
 
     # save the final model
     if self.is_primary_worker('global'):

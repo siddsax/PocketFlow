@@ -34,8 +34,9 @@ tf.app.flags.DEFINE_string('dcp_save_path_eval', './models_dcp_eval/model.ckpt',
 tf.app.flags.DEFINE_float('dcp_prune_ratio', 0.5, 'DCP: target channel pruning ratio')
 tf.app.flags.DEFINE_integer('dcp_nb_stages', 3, 'DCP: # of channel pruning stages')
 tf.app.flags.DEFINE_float('dcp_lrn_rate_adam', 1e-3, 'DCP: Adam\'s learning rate')
-tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 10000, 'DCP: # of iterations for block-wise FT')
-tf.app.flags.DEFINE_integer('dcp_nb_iters_layer', 500, 'DCP: # of iterations for layer-wise FT')
+tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 100, 'DCP: # of iterations for block-wise FT')
+# tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 10000, 'DCP: # of iterations for block-wise FT')
+tf.app.flags.DEFINE_integer('dcp_nb_iters_layer', 100, 'DCP: # of iterations for layer-wise FT')
 
 def get_vars_by_scope(scope):
   """Get list of variables within certain name scope.
@@ -131,7 +132,6 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     # restore the full model from pre-trained checkpoints
 
     # print('-'*100)
-    # import pdb;pdb.set_trace()
     # model = tf.saved_model.load(export_dir = '/Users/ssaxena/Downloads/multiLbl/', sess = self.sess_train, tags = ["serve"])
     save_path = tf.train.latest_checkpoint(os.path.dirname(self.save_path_full))
     self.saver_full.restore(self.sess_train, save_path)
@@ -152,6 +152,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     time_prev = timer()
     for idx_iter in range(self.nb_iters_train):
       # train the model
+      print(idx_iter, self.nb_iters_train)
       if (idx_iter + 1) % FLAGS.summ_step != 0:
         self.sess_train.run(self.train_op)
       else:
@@ -480,6 +481,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     nb_workers = mgw.size() if FLAGS.enbl_multi_gpu else 1
     nb_iters_block = int(FLAGS.dcp_nb_iters_block / nb_workers)
     nb_iters_layer = int(FLAGS.dcp_nb_iters_layer / nb_workers)
+    print(nb_iters_block, nb_iters_layer, self.nb_blocks, self.nb_layers)
     for idx_block in range(self.nb_blocks):
       # fine-tune the current block
       for idx_iter in range(nb_iters_block):
