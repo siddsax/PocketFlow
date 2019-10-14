@@ -34,9 +34,9 @@ tf.app.flags.DEFINE_string('dcp_save_path_eval', './models_dcp_eval/model.ckpt',
 tf.app.flags.DEFINE_float('dcp_prune_ratio', 0.5, 'DCP: target channel pruning ratio')
 tf.app.flags.DEFINE_integer('dcp_nb_stages', 3, 'DCP: # of channel pruning stages')
 tf.app.flags.DEFINE_float('dcp_lrn_rate_adam', 1e-3, 'DCP: Adam\'s learning rate')
-tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 100, 'DCP: # of iterations for block-wise FT')
+tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 200, 'DCP: # of iterations for block-wise FT')
 # tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 10000, 'DCP: # of iterations for block-wise FT')
-tf.app.flags.DEFINE_integer('dcp_nb_iters_layer', 100, 'DCP: # of iterations for layer-wise FT')
+tf.app.flags.DEFINE_integer('dcp_nb_iters_layer', 5, 'DCP: # of iterations for layer-wise FT')
 
 def get_vars_by_scope(scope):
   """Get list of variables within certain name scope.
