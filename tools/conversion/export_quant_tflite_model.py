@@ -40,6 +40,8 @@ tf.app.flags.DEFINE_integer('default_ranges_min', 0,
 tf.app.flags.DEFINE_integer('default_ranges_max', 6,
                           'Default value for the max range values used for all arrays without a specified range.')
 
+tf.app.flags.DEFINE_integer('num', 1, 'iteration to load')
+
 
 def get_file_path_meta():
   """Get the file path to the *.meta data.
@@ -48,8 +50,9 @@ def get_file_path_meta():
   * file_path: file path to the *.meta data
   """
 
-  pattern = re.compile(r'model\.ckpt\.meta$')
+  pattern = re.compile("model\.ckpt-" + str(FLAGS.num) + "\.meta$")
   for file_name in os.listdir(FLAGS.model_dir):
+
     if re.search(pattern, file_name) is not None:
       file_path = os.path.join(FLAGS.model_dir, file_name)
       break
@@ -104,6 +107,7 @@ def convert_pb_model_to_tflite(net, file_path_pb, file_path_tflite, enbl_quant):
         '--default_ranges_max %d'%FLAGS.default_ranges_max]
   cmd_str = ' '.join(['tflite_convert'] + arg_list)
   tf.logging.info('Executing: %s'%cmd_str)
+
   subprocess.call(cmd_str.split(), shell=False)
   tf.logging.info(file_path_tflite + ' generated')
 

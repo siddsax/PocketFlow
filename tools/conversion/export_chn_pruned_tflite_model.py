@@ -34,6 +34,7 @@ tf.app.flags.DEFINE_boolean('enbl_fake_prune', False, 'enable fake pruning (for 
 tf.app.flags.DEFINE_float('fake_prune_ratio', 0.5, 'fake pruning ratio')
 tf.app.flags.DEFINE_integer('nb_repts_warmup', 100, '# of repeated runs for warm-up')
 tf.app.flags.DEFINE_integer('nb_repts', 100, '# of repeated runs for elapsed time measurement')
+tf.app.flags.DEFINE_integer('num', 1, 'iteration to load')
 
 def get_file_path_meta():
   """Get the file path to the *.meta data.
@@ -42,7 +43,7 @@ def get_file_path_meta():
   * file_path: file path to the *.meta data
   """
 
-  pattern = re.compile('model.ckpt.meta$')
+  pattern = re.compile("model\.ckpt-" + str(FLAGS.num) + "\.meta$")
   for file_name in os.listdir(FLAGS.model_dir):
     if re.search(pattern, file_name) is not None:
       file_path = os.path.join(FLAGS.model_dir, file_name)

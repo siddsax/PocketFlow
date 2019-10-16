@@ -29,8 +29,8 @@ import traceback
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import graph_editor
-from tensorflow.contrib.lite.python import lite_constants
-
+# from tensorflow.contrib.lite.python import lite_constants
+from tensorflow.lite.python import lite_constants
 FLAGS = tf.app.flags.FLAGS
 
 # common configurations
@@ -50,6 +50,7 @@ tf.app.flags.DEFINE_boolean('enbl_uni_quant', False,
                             'enable exporting models with uniform quantization operations applied')
 tf.app.flags.DEFINE_boolean('enbl_fake_quant', False,
                             'enable post-training quantization (may have extra performance loss)')
+tf.app.flags.DEFINE_integer('num', 1, 'iteration to load')
 
 def get_meta_path():
   """Get the path to the *.meta file.
@@ -57,8 +58,8 @@ def get_meta_path():
   Returns:
   * file_path: path to the *.meta file
   """
-
-  pattern = re.compile(r'model\.ckpt\.meta$')  # file name must be: *model.ckpt.meta
+  pattern = re.compile(r'model\.ckpt\.meta$')
+  # pattern = re.compile("model\.ckpt-" + str(FLAGS.num) + "\.meta$")
   for file_name in os.listdir(FLAGS.model_dir):
     if re.search(pattern, file_name) is not None:
       file_path = os.path.join(FLAGS.model_dir, file_name)
@@ -193,10 +194,11 @@ def insert_alt_routines(sess, graph_trans_mthd):
       kernel_shrk = kernel[:, :, nnzs, :]
 
       # replace channel pruned convolutional with cheaper operations
+      if kernel_chn_in != nnzs.size:
+        import pdb;pdb.set_trace()
       if graph_trans_mthd == 'gather':
-        x = tf.gather(op.inputs[0], nnzs, axis=1)
-        x = tf.nn.conv2d(
-          x, kernel_shrk, strides, padding, data_format=data_format, dilations=dilations)
+        x = tf.gather(op.inputs[0], nnzs, axis=3)
+        x = tf.nn.conv2d(x, kernel_shrk, strides, padding, data_format=data_format, dilations=dilations)
       elif graph_trans_mthd == '1x1_conv':
         x = tf.nn.conv2d(op.inputs[0], kernel_gthr, [1, 1, 1, 1], 'SAME', data_format=data_format)
         x = tf.nn.conv2d(
@@ -286,7 +288,7 @@ def test_tflite_model(file_path, net_input_data):
 
   # test the model with given inputs
   if not FLAGS.enbl_uni_quant:
-    interpreter.set_tensor(input_details[0]['index'], net_input_data)
+    interpreter.set_tensor(input_details[0]['index'], net_input_data.astype(np.float32))
   else:
     interpreter.set_tensor(input_details[0]['index'], net_input_data.astype(np.uint8))
   interpreter.invoke()
@@ -317,7 +319,8 @@ def export_pb_tflite_model(net, meta_path, pb_path, tflite_path):
 
     # obtain the data format and determine which graph transformation method to be used
     data_format = get_data_format()
-    graph_trans_mthd = 'gather' if data_format == 'NCHW' else '1x1_conv'
+    # graph_trans_mthd = 'gather' if data_format == 'NCHW' else '1x1_conv'
+    graph_trans_mthd = 'gather'
 
     # obtain the output node
     net_logits = tf.get_collection(FLAGS.output_coll)[0]
@@ -335,11 +338,13 @@ def export_pb_tflite_model(net, meta_path, pb_path, tflite_path):
 
     # edit the graph by inserting alternative routines for each convolutional layer
     if FLAGS.enbl_chn_prune:
+
       op_outputs_old, op_outputs_new = insert_alt_routines(sess, graph_trans_mthd)
       sess.close()
       graph_editor.swap_outputs(op_outputs_old, op_outputs_new)
       sess = tf.Session(config=config)  # open a new session
       saver.restore(sess, meta_path.replace('.meta', ''))
+      # import pdb; pdb.set_trace()
 
     # write the original grpah to *.pb file
     graph_def = graph.as_graph_def()

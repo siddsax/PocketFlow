@@ -27,6 +27,9 @@ from utils.multi_gpu_wrapper import MultiGpuWrapper as mgw
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_integer('loadingTrained', 0, 'If loading a previously trained model')
+
+
 class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-attributes
   """Full-precision learner (no model compression applied)."""
 
@@ -65,7 +68,15 @@ class FullPrecLearner(AbstractLearner):  # pylint: disable=too-many-instance-att
 
     # train the model through iterations and periodically save & evaluate the model
     time_prev = timer()
-    for idx_iter in range(self.nb_iters_train):
+
+    if FLAGS.loadingTrained:
+      # choose discrimination-aware channels
+      self.__restore_model(is_train=False)
+      self.__restore_model(is_train=True)
+
+
+    for idx_iter in range(1000):
+    # for idx_iter in range(self.nb_iters_train):
       # train the model
       print(idx_iter, self.nb_iters_train)
       if (idx_iter + 1) % FLAGS.summ_step != 0:

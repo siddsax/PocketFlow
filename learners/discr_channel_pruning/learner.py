@@ -37,6 +37,8 @@ tf.app.flags.DEFINE_float('dcp_lrn_rate_adam', 1e-3, 'DCP: Adam\'s learning rate
 tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 200, 'DCP: # of iterations for block-wise FT')
 # tf.app.flags.DEFINE_integer('dcp_nb_iters_block', 10000, 'DCP: # of iterations for block-wise FT')
 tf.app.flags.DEFINE_integer('dcp_nb_iters_layer', 5, 'DCP: # of iterations for layer-wise FT')
+tf.app.flags.DEFINE_integer('loadingPruned', 0, 'If loading a previously pruned model')
+
 
 def get_vars_by_scope(scope):
   """Get list of variables within certain name scope.
@@ -130,13 +132,8 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     """Train a model and periodically produce checkpoint files."""
 
     # restore the full model from pre-trained checkpoints
-
-    # print('-'*100)
-    # model = tf.saved_model.load(export_dir = '/Users/ssaxena/Downloads/multiLbl/', sess = self.sess_train, tags = ["serve"])
     save_path = tf.train.latest_checkpoint(os.path.dirname(self.save_path_full))
     self.saver_full.restore(self.sess_train, save_path)
-    # self.saver_full.restore(self.sess_train, "multiLbl")
-    # tf.train.Saver.restore
 
     # initialization
     self.sess_train.run([self.init_op, self.init_opt_op])
@@ -145,12 +142,18 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     if FLAGS.enbl_multi_gpu:
       self.sess_train.run(self.bcast_op)
 
-    # choose discrimination-aware channels
-    self.__choose_discr_chns()
+
+    if FLAGS.loadingPruned:
+      # choose discrimination-aware channels
+      self.__restore_model(is_train=False)
+      self.__restore_model(is_train=True)
+    else:
+      self.__choose_discr_chns()
 
     # fine-tune the model with chosen channels only
     time_prev = timer()
-    for idx_iter in range(self.nb_iters_train):
+    for idx_iter in range(1000):
+    # for idx_iter in range(self.nb_iters_train):
       # train the model
       print(idx_iter, self.nb_iters_train)
       if (idx_iter + 1) % FLAGS.summ_step != 0:
@@ -297,6 +300,9 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
       if FLAGS.enbl_multi_gpu:
         self.bcast_op = mgw.broadcast_global_variables(0)
 
+      tf.add_to_collection('images_final', images)
+      tf.add_to_collection('logits_final', logits_prnd)
+
   def __build_eval(self):
     """Build the evaluation graph."""
 
@@ -335,7 +341,7 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
         # TF operations for evaluation
         # self.eval_op = [loss, pr_trainable, pr_maskable] + list(metrics.values())
         self.eval_op = [loss, pr_trainable] + list(metrics.values())
-        self.eval_op_names = ['loss', 'pr_trn', 'pr_msk'] + list(metrics.keys())
+        self.eval_op_names = ['loss', 'pr_trn'] + list(metrics.keys())
         self.saver_prnd_eval = tf.train.Saver(vars_prnd['all'])
 
       # add input & output tensors to certain collections
@@ -551,7 +557,6 @@ class DisChnPrunedLearner(AbstractLearner):  # pylint: disable=too-many-instance
     Args:
     * is_train: whether to save a model for training
     """
-
     if is_train:
       save_path = self.saver_prnd_train.save(self.sess_train, FLAGS.dcp_save_path, self.global_step)
     else:
